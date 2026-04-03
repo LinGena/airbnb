@@ -1,0 +1,33 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: "${DB_NAME}"
+      MYSQL_ROOT_PASSWORD: "${DB_PASS}"
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  scraper:
+    container_name: airbnb_scraper
+    build:
+      context: .
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT}"
+      DB_USER: "${DB_USER}"
+      DB_PASS: "${DB_PASS}"
+      DB_NAME: "${DB_NAME}"
+    restart: always
+    command: ["python", "main.py"]
+
+volumes:
+  db_data:

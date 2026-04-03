@@ -1,0 +1,11 @@
+*.pyc
+__pycache
+.DS_Store
+venv
+.idea
+.sentry-native/
+browsers
+.env
+hetzner.txt
+main_test.py
+index.html
