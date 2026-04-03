@@ -7,19 +7,24 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-def get_proxy(id: int = None) -> dict:
+def get_proxy_dicts() -> list[dict]:
     all_proxies = get_list_proxies()
     if not all_proxies:
         raise Exception("The proxies list is empty or proxies are not United Kingdom.")
     proxy_strings = [proxy_to_string(proxy) for proxy in all_proxies]
-    if len(proxy_strings) > 0:
-        if id is not None:
-            return { 
-                'http': proxy_strings[id],
-                'https': proxy_strings[id]
-            } 
-        return proxy_strings
-    return None
+    return [{"http": s, "https": s} for s in proxy_strings]
+
+
+def get_proxy(id: int = None):
+    if id is not None:
+        configs = get_proxy_dicts()
+        if id < 0 or id >= len(configs):
+            raise IndexError(f"proxy id {id} out of range")
+        return configs[id]
+    all_proxies = get_list_proxies()
+    if not all_proxies:
+        raise Exception("The proxies list is empty or proxies are not United Kingdom.")
+    return [proxy_to_string(proxy) for proxy in all_proxies]
 
 def get_list_proxies() -> list | None:
     user_agent = "Mozilla/5.0 (platform; rv:geckoversion) Gecko/geckotrail Firefox/firefoxversion"

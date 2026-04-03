@@ -44,9 +44,12 @@ class Db():
             self.cursor.executemany(sql, batch)
             self.connection.commit()
 
-    def select(self, sql: str, with_column_names=False) -> list:
-        self.cursor.execute(sql)
-        rows = self.cursor.fetchall() 
+    def select(self, sql: str, params=None, with_column_names=False) -> list:
+        if params is not None:
+            self.cursor.execute(sql, params)
+        else:
+            self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
         if with_column_names:
             column_names = [desc[0] for desc in self.cursor.description]
             return [dict(zip(column_names, row)) for row in rows]
@@ -63,14 +66,44 @@ class Db():
         else:
             return 1
 
+    def claim_airbnb_batch(self, limit: int = 100) -> list[tuple]:
+        try:
+            self.connection.autocommit = False
+            self.cursor.execute(
+                """SELECT id, link FROM airbnb
+                   WHERE (status IS NULL OR status = 0)
+                   ORDER BY RAND() LIMIT %s FOR UPDATE""",
+                (limit,),
+            )
+            rows = self.cursor.fetchall()
+            if not rows:
+                self.connection.commit()
+                return []
+            ids = [r[0] for r in rows]
+            placeholders = ",".join(["%s"] * len(ids))
+            self.cursor.execute(
+                f"UPDATE airbnb SET status = 10 WHERE id IN ({placeholders})",
+                ids,
+            )
+            self.connection.commit()
+            return list(rows)
+        except Exception:
+            self.connection.rollback()
+            raise
+        finally:
+            self.connection.autocommit = True
+
+    def set_airbnb_status(self, row_id: int, status: int) -> None:
+        self.insert("UPDATE airbnb SET status = %s WHERE id = %s", (status, row_id))
+
 
 _AIRBNB_CREATE_SQL = """
 CREATE TABLE IF NOT EXISTS `airbnb` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `link` varchar(250) UNIQUE,
   `title` text,
-  `latitude` decimal(10, 8) DEFAULT NULL,
-  `longitude` decimal(11, 8) DEFAULT NULL,
+  `latitude` double DEFAULT NULL,
+  `longitude` double DEFAULT NULL,
   `number_guests` int DEFAULT NULL,
   `number_reviews` int DEFAULT NULL,
   `average_reviews` float DEFAULT NULL,
