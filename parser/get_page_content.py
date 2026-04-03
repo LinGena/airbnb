@@ -115,6 +115,7 @@ class GetPageContent(Db):
                 print('updated data id=', row_id)
         finally:
             proxy_pool.release(proxy_id)
+            self.close_connection()
 
     def parse_json_from_html(self, html: str) -> dict | None:
         soup = BeautifulSoup(html, "html.parser")
